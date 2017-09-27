@@ -1,0 +1,178 @@
+﻿@using Orchard.Candidate.Net.Areas.Dashboard.Controllers
+@model Orchard.Candidate.Net.Areas.Dashboard.Models.HomeViewModel
+@{
+    ViewBag.Title = "User Home Page";
+}
+<script src="~/Scripts/jquery-3.1.1.min.js"></script>
+
+<h1>Welcome @Model.User.Username to your dashboard</h1>
+
+<h3>Your Posts </h3>
+<br />
+
+<div class="row">
+    <div class="col-md-8">
+        <div id="posts">
+            @foreach (var post in Model.Posts)
+            {
+                <h4>@post.Id - @post.Title </h4>
+                <p>@post.Body</p>
+                <hr />
+            }
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="well">
+            <h3>Add New Post</h3>
+            <div class="form-group">
+                <label for="title">Title</label>
+                <input type="text" class="form-control" id="title" placeholder="Title">
+            </div>
+
+            <div class="form-group">
+                <label for="body">Body</label>
+                <textarea class="form-control" id="body" placeholder="Body" rows="10"></textarea>
+            </div>
+
+            <div id="validation" class="alert alert-danger" style="display:none;" role="alert">You have not completed all the fields</div>
+
+            <button id="addButton" type="button" class="btn btn-primary">Add</button>
+        </div>
+    </div>
+</div>
+
+
+<input id="page" type="hidden" value="1" />
+
+<input id="showOlder" type="button" value="Show Older Posts" class="btn btn-primary" />
+<input id="showRecent" type="button" value="Most Recent" class="btn btn-primary" style="display:none;" />
+
+@*Style should be move to style sheet and made classes, left like this for demostration purposes*@
+<div id="loading" style="position:fixed;height:100%;width:100%;top:0%; left:0%;background-color:white;display:none;">
+
+    <div style="position:fixed; top:15%; left:25%;text-align:center;">
+        <h1>Loading....</h1>
+        <img src="@Url.Content("~/Images/tenor.gif")" />
+    </div>
+</div>
+
+<script>
+
+    $(function () {
+
+        //Move the javascript file if more time, left here for demonstration purposes
+        $('#showOlder, #showRecent').click(function () {
+            //show loading image
+            $("#loading").show();
+
+            //add artifical timeout
+            window.setTimeout(function () { loadPosts() }, 3000);
+        });
+
+
+        $('#addButton').click(function () {
+            //Quick validation hack
+            var invalid = false;
+            if ($('#title').val().length == 0 || $('#body').val().length == 0) {
+                invalid = true;
+                $('#validation').show();
+            }
+
+            if (invalid) return;
+
+            //show loading image
+            $("#loading").show();
+            window.setTimeout(function () { addPost() }, 1000);
+        });
+
+        function loadPosts() {
+            $.post("/Dashboard/Home/GetOlderPosts?page=" + $('#page').val(), function (data) {
+
+                //clear current posts
+                var posts = $('#posts');
+                posts.empty();
+
+                //Set the current page add one more
+                $('#page').val(parseInt($('#page').val()) + 1);
+
+                var obj = jQuery.parseJSON(data);
+
+                //if posts add new ones
+                if (obj.length != 0 ) {
+
+                    $.each(obj, function (key, value) {
+                        posts.append("<h4>" + value.Id + " - " + value.Title + "</h4><p>" + value.Body + "</p><hr />");
+                    });
+
+                    if (obj.length != 5) {
+                        //we are on the last page (with some posts)
+                        //show most recent
+                        showRecentPostsButton();
+                        //reset page count
+                        $('#page').val(0);
+                    } else {
+
+                        showOlderPostsButton();
+                    }
+
+                } else {
+
+                    //Else show no more posts
+                    posts.append('<div class="alert alert-warning" role="alert">No more posts!</div>');
+
+                    //show most recent
+                    showRecentPostsButton();
+
+                    //reset page count
+                    $('#page').val(0);
+                }
+
+                //Hide loading image
+                $("#loading").fadeOut();
+            });
+        }
+
+        function showOlderPostsButton() {
+            $('#showOlder').show();
+            $('#showRecent').hide();
+        }
+
+
+        function showRecentPostsButton() {
+            $('#showOlder').hide();
+            $('#showRecent').show();
+        }
+
+        var token = "T3JjaGFyZEFwaUtleQ==";
+
+        function addPost() {
+            $.ajax({
+                url: "/api/post",
+                type: 'POST',
+                data: JSON.stringify( {
+                    title: $('#title').val(),
+                    body: $('#body').val()
+                }),
+                contentType: 'application/json',
+                headers: {
+                    "Authorization": "Bearer  " + token
+                },
+                async: false,
+                success: function (response) {
+                    $('#validation').hide();
+
+                    //reset page count
+                    $('#page').val(0);
+                    loadPosts();
+
+                    //Hide loading image
+                    $("#loading").fadeOut();
+
+                    $('#title').val("");
+                        $('#body').val("");
+                }
+            });
+        }
+    });
+
+</script>

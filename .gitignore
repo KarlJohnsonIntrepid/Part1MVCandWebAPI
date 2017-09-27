@@ -1,0 +1,6 @@
+packages/
+Orchard.Candidate.Net/App_Data/
+Orchard.Candidate.Net/bin/
+Orchard.Candidate.Net/obj/Debug/Orchard.Candidate.Net.dll
+Orchard.Candidate.Net/obj/
+.vs/
